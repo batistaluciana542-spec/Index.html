@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>NEON RIFT // Arena</title>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<style>
+:root{--bg:#070816;--panel:#10152a;--line:#27345e;--cyan:#49f6ff;--pink:#ff4fd8;--yellow:#ffd45c;--text:#eef4ff;--muted:#8d9abd}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}button,input{font:inherit}button{cursor:pointer}
+.screen{position:fixed;inset:0;display:none;align-items:center;justify-content:center}.screen.active{display:flex}
+#menu{background:radial-gradient(circle at 50% 20%,#19204b 0,#090b19 48%,#05050d 100%);overflow:auto}
+.card{width:min(920px,94vw);background:rgba(13,18,38,.88);border:1px solid #344273;border-radius:26px;padding:30px;box-shadow:0 0 70px #0008,0 0 40px #4af6ff12;backdrop-filter:blur(18px)}
+.logo{font-weight:1000;letter-spacing:.16em;font-size:clamp(38px,8vw,82px);line-height:.9;background:linear-gradient(90deg,var(--cyan),#fff,var(--pink));-webkit-background-clip:text;color:transparent;text-align:center}.sub{text-align:center;color:var(--muted);letter-spacing:.25em;margin:12px 0 28px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.field label{display:block;color:#9facd1;font-size:12px;text-transform:uppercase;letter-spacing:.14em;margin-bottom:7px}.field input,.roomline input{width:100%;background:#080c1d;border:1px solid #344273;color:white;padding:14px 15px;border-radius:13px;outline:none}.field input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px #49f6ff16}
+.colors{display:flex;gap:10px;flex-wrap:wrap}.sw{width:35px;height:35px;border-radius:50%;border:3px solid transparent}.sw.sel{border-color:#fff;box-shadow:0 0 18px currentColor}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}button.primary,button.secondary{border:0;border-radius:14px;padding:15px 18px;font-weight:900;letter-spacing:.05em}.primary{background:linear-gradient(90deg,var(--cyan),#9c7cff);color:#07101d}.secondary{background:#1b2340;color:white;border:1px solid #384777!important}.hint{text-align:center;color:#7380a7;font-size:12px;margin-top:14px}
+#game{background:#05060d}.top{position:fixed;left:0;right:0;top:0;height:66px;display:flex;align-items:center;gap:10px;padding:9px 12px;background:linear-gradient(#070918ee,#07091866);z-index:5;pointer-events:none}.stat{background:#0e1530dd;border:1px solid #2a3864;border-radius:12px;padding:8px 12px;min-width:80px}.stat b{display:block;color:var(--cyan);font-size:16px}.stat small{color:#7785ac;font-size:9px;text-transform:uppercase;letter-spacing:.12em}.top .room{margin-left:auto}.mini{padding:9px 11px;border-radius:10px;border:1px solid #33436f;background:#101936;color:#fff;pointer-events:auto}
+#world{width:100%;height:100%;display:block}
+#mobile{position:fixed;inset:0;pointer-events:none;z-index:4}.joy{position:absolute;bottom:28px;left:24px;width:125px;height:125px;border:2px solid #ffffff24;background:#ffffff08;border-radius:50%;pointer-events:auto}.knob{position:absolute;width:52px;height:52px;left:34px;top:34px;border-radius:50%;background:#49f6ff35;border:1px solid #49f6ff99}.fire{position:absolute;right:28px;bottom:38px;width:86px;height:86px;border-radius:50%;border:2px solid #ff4fd877;background:#ff4fd822;color:white;font-weight:900;pointer-events:auto}.dash{position:absolute;right:132px;bottom:42px;width:64px;height:64px;border-radius:50%;border:2px solid #ffd45c77;background:#ffd45c16;color:white;font-weight:900;pointer-events:auto}
+#side{position:fixed;right:12px;top:78px;width:235px;z-index:6;background:#090e21dd;border:1px solid #2c3a67;border-radius:16px;padding:12px;backdrop-filter:blur(10px)}#side h3{margin:2px 0 8px;font-size:12px;color:#8fa0cc;letter-spacing:.15em}#players{display:grid;gap:6px;max-height:35vh;overflow:auto}.pl{display:flex;justify-content:space-between;padding:7px 8px;border-radius:9px;background:#101833;font-size:12px}.dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}
+#chat{position:fixed;left:12px;bottom:16px;width:min(320px,65vw);z-index:7}.msgs{max-height:150px;overflow:auto;display:flex;flex-direction:column;gap:4px;margin-bottom:7px}.msg{font-size:11px;background:#080c1dcc;border:1px solid #25335c;padding:6px 8px;border-radius:8px}.chatline{display:flex;gap:5px}.chatline input{min-width:0;flex:1;background:#0d1430;border:1px solid #293968;color:#fff;border-radius:9px;padding:9px}.chatline button{background:#49f6ff22;color:#fff;border:1px solid #49f6ff66;border-radius:9px;padding:0 12px}
+#toast{position:fixed;left:50%;top:82px;transform:translateX(-50%);z-index:20;background:#0c1430ee;border:1px solid #49f6ff77;padding:10px 16px;border-radius:12px;opacity:0;transition:.2s;pointer-events:none}#toast.show{opacity:1}
+#death{background:#050611cc;z-index:30}.deathbox{text-align:center;background:#0d1229f5;border:1px solid #ff4fd866;padding:34px;border-radius:24px}.deathbox h1{font-size:48px;margin:0 0 8px;color:#ff77df}.deathbox p{color:#a5b0cf}
+@media(max-width:700px){.grid{grid-template-columns:1fr}.card{padding:20px}.sub{font-size:10px}.top{height:58px}.stat{min-width:62px;padding:6px 8px}.stat b{font-size:13px}#side{width:180px;top:65px}.logo{font-size:46px}}
+</style>
+</head>
+<body>
+<div id="menu" class="screen active">
+<div class="card">
+<div class="logo">NEON RIFT</div><div class="sub">ONLINE ARENA // SEASON 01</div>
+<div class="grid">
+<div class="field"><label>Seu nome</label><input id="name" maxlength="14" placeholder="Digite seu nome"></div>
+<div class="field"><label>Código da sala</label><input id="room" maxlength="10" placeholder="ex: RIFT42"></div>
+</div>
+<div style="margin-top:18px"><label style="color:#9facd1;font-size:12px;text-transform:uppercase;letter-spacing:.14em">Cor do piloto</label><div class="colors" id="colors"></div></div>
+<div class="actions"><button class="primary" id="hostBtn">CRIAR SALA</button><button class="secondary" id="joinBtn">ENTRAR NA SALA</button></div>
+<div class="hint">Multiplayer P2P • até 8 pilotos • chat • XP • moedas • loja • habilidades • ranking da partida</div>
+</div></div>
+
+<div id="game" class="screen">
+<canvas id="world"></canvas>
+<div class="top">
+<div class="stat"><b id="score">0</b><small>Pontos</small></div><div class="stat"><b id="coins">0</b><small>Moedas</small></div><div class="stat"><b id="level">1</b><small>Nível</small></div><div class="stat room"><b id="roomLabel">----</b><small>Sala</small></div><button class="mini" id="leave">SAIR</button>
+</div>
+<div id="side"><h3>PILOTOS ONLINE</h3><div id="players"></div></div>
+<div id="chat"><div class="msgs" id="msgs"></div><div class="chatline"><input id="chatInput" maxlength="80" placeholder="Mensagem..."><button id="send">➤</button></div></div>
+<div id="mobile"><div class="joy" id="joy"><div class="knob" id="knob"></div></div><button class="dash" id="dash">DASH</button><button class="fire" id="fire">FIRE</button></div>
+</div>
+<div id="death" class="screen"><div class="deathbox"><h1>VOCÊ CAIU</h1><p id="deathText">Reaparecendo...</p><button class="primary" id="respawn">VOLTAR À ARENA</button></div></div>
+<div id="toast"></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const colors=['#49f6ff','#ff4fd8','#ffd45c','#75ff7a','#9b7cff','#ff785f','#58a6ff','#f4f4f4'];
+let color=colors[0], peer=null, conn=null, host=false, roomCode='', myId='', running=false;
+let players={}, bullets=[], particles=[], pickups=[], keys={}, last=0, fireCd=0, dashCd=0, score=0, coins=0, xp=0, level=1, dead=false;
+const canvas=$('world'),ctx=canvas.getContext('2d');let W=innerWidth,H=innerHeight;
+function resize(){W=canvas.width=innerWidth;H=canvas.height=innerHeight}addEventListener('resize',resize);resize();
+colors.forEach((c,i)=>{let b=document.createElement('button');b.className='sw'+(i===0?' sel':'');b.style.background=c;b.style.color=c;b.onclick=()=>{color=c;document.querySelectorAll('.sw').forEach(x=>x.classList.remove('sel'));b.classList.add('sel')};$('colors').appendChild(b)});
+$('name').value=localStorage.riftName||'';$('room').value='';
+function cleanRoom(v){return v.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,10)}
+function makeCode(){return 'RIFT'+Math.random().toString(36).slice(2,6).toUpperCase()}
+function toast(t){$('toast').textContent=t;$('toast').classList.add('show');setTimeout(()=>$('toast').classList.remove('show'),1800)}
+function addMsg(n,m,c){let d=document.createElement('div');d.className='msg';d.innerHTML='<b style="color:'+c+'">'+esc(n)+'</b>: '+esc(m);$('msgs').appendChild(d);$('msgs').scrollTop=99999}
+function esc(s){return String(s).replace(/[&<>"]/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[x]))}
+function makePlayer(id,n,c){return {id,name:n,color:c,x:200+Math.random()*(W-400),y:150+Math.random()*(H-300),hp:100,maxhp:100,kills:0,dead:false,score:0,coins:0,vx:0,vy:0,rot:0}}
+function startMe(){myId=peer.id;players[myId]=makePlayer(myId,$('name').value.trim()||'Piloto',color);localStorage.riftName=players[myId].name;running=true;dead=false;$('menu').classList.remove('active');$('game').classList.add('active');$('roomLabel').textContent=roomCode;toast(host?'Sala criada!':'Conectado!');last=performance.now();requestAnimationFrame(loop);updateUI()}
+function setupHost(){host=true;roomCode=cleanRoom($('room').value)||makeCode();peer=new Peer('neonrift-'+roomCode,{debug:0});peer.on('open',()=>{startMe();addMsg('SISTEMA','Sala aberta. Compartilhe o código: '+roomCode,'#49f6ff')});peer.on('connection',c=>{c.on('open',()=>{connClient(c)})});peer.on('error',e=>toast('Erro: '+e.type))}
+function connClient(c){c.on('data',data=>handleHost(c,data));c.on('close',()=>{delete players[c.peer];broadcast({t:'state',players:pack()});updateUI()});c.on('error',()=>{});c.send({t:'welcome',room:roomCode,players:pack()});}
+function setupJoin(){host=false;roomCode=cleanRoom($('room').value);if(!roomCode){toast('Digite o código da sala');return}peer=new Peer({debug:0});peer.on('open',()=>{conn=peer.connect('neonrift-'+roomCode,{reliable:true});conn.on('open',()=>{conn.send({t:'join',name:$('name').value.trim()||'Piloto',color});startMe()});conn.on('data',handleClient);conn.on('close',()=>{toast('Host desconectou');leave()});});peer.on('error',e=>toast('Sala não encontrada ou ocupada'))}
+function pack(){let o={};for(const id in players){let p=players[id];o[id]={id:p.id,name:p.name,color:p.color,x:p.x,y:p.y,hp:p.hp,maxhp:p.maxhp,kills:p.kills,dead:p.dead,score:p.score,coins:p.coins,rot:p.rot}}return o}
+function broadcast(m,except){for(const id in peers){if(id!==except)try{peers[id].send(m)}catch(e){}}}
+let peers={};
+function handleHost(c,d){if(d.t==='join'){players[c.peer]=makePlayer(c.peer,d.name,d.color);peers[c.peer]=c;broadcast({t:'state',players:pack()});return}
+if(d.t==='input'&&players[c.peer]){let p=players[c.peer],i=d.i;p.x=Math.max(25,Math.min(W-25,p.x+i.dx));p.y=Math.max(75,Math.min(H-25,p.y+i.dy));p.rot=i.rot;if(i.fire)spawnBullet(p);if(i.dash&&dashCd<=0){p.x+=Math.cos(p.rot)*90;p.y+=Math.sin(p.rot)*90;dashCd=60}}}
+function spawnBullet(p){if(p.dead)return;let sp=9;bullets.push({owner:p.id,x:p.x+Math.cos(p.rot)*22,y:p.y+Math.sin(p.rot)*22,vx:Math.cos(p.rot)*sp,vy:Math.sin(p.rot)*sp,life:80,color:p.color})}
+function tickHost(dt){for(const b of bullets){b.x+=b.vx*dt;b.y+=b.vy*dt;b.life-=dt;for(const id in players){let p=players[id];if(id!==b.owner&&!p.dead&&Math.hypot(p.x-b.x,p.y-b.y)<18){p.hp-=24;b.life=0;if(p.hp<=0){p.dead=true;p.hp=0;let k=players[b.owner];if(k){k.kills++;k.score+=100;k.coins+=20}setTimeout(()=>{if(players[id]){players[id].dead=false;players[id].hp=100;players[id].x=100+Math.random()*(W-200);players[id].y=100+Math.random()*(H-200)}},2500)}}}}bullets=bullets.filter(b=>b.life>0&&b.x>-30&&b.x<W+30&&b.y>50&&b.y<H+30);if(Math.random()<.015*dt)pickups.push({x:50+Math.random()*(W-100),y:90+Math.random()*(H-130),type:Math.random()<.5?'coin':'heal',life:1200});for(const p of Object.values(players)){for(let i=pickups.length-1;i>=0;i--){let q=pickups[i];if(Math.hypot(p.x-q.x,p.y-q.y)<25&&!p.dead){if(q.type==='coin'){p.coins+=5;p.score+=25}else p.hp=Math.min(100,p.hp+35);pickups.splice(i,1)}}}dashCd=Math.max(0,dashCd-dt);broadcast({t:'state',players:pack(),bullets:bullets.map(b=>({x:b.x,y:b.y,vx:b.vx,vy:b.vy,color:b.color,life:b.life})),pickups})}
+function handleClient(d){if(d.t==='welcome'){players=d.players;return}if(d.t==='state'){players=d.players;bullets=d.bullets||[];pickups=d.pickups||[];let me=players[myId];if(me){score=me.score;coins=me.coins;if(me.dead&&!dead){dead=true;$('death').classList.add('active');$('game').classList.remove('active');$('deathText').textContent='Você foi eliminado. Respawn automático disponível.'} }updateUI()}if(d.t==='chat')addMsg(d.n,d.m,d.c)}
+function sendInput(dt){let dx=0,dy=0;if(keys.w||keys.ArrowUp)dy-=1;if(keys.s||keys.ArrowDown)dy+=1;if(keys.a||keys.ArrowLeft)dx-=1;if(keys.d||keys.ArrowRight)dx+=1;let l=Math.hypot(dx,dy)||1;let speed=4.4;let me=players[myId];if(me){me.x+=dx/l*speed*dt;me.y+=dy/l*speed*dt;let mx=mouse.x||W/2,my=mouse.y||H/2;me.rot=Math.atan2(my-me.y,mx-me.x)}let data={t:'input',i:{dx:dx/l*speed*dt,dy:dy/l*speed*dt,rot:me?me.rot:0,fire:keys.fire,dash:keys.dash}};if(host){handleHost({peer:myId},data)}else if(conn&&conn.open)conn.send(data);keys.fire=false;keys.dash=false}
+let mouse={x:0,y:0};canvas.addEventListener('pointermove',e=>{mouse.x=e.clientX;mouse.y=e.clientY});canvas.addEventListener('pointerdown',()=>keys.fire=true);
+addEventListener('keydown',e=>{keys[e.key]=true;if(e.key===' ')keys.fire=true});addEventListener('keyup',e=>keys[e.key]=false);
+$('fire').ontouchstart=e=>{e.preventDefault();keys.fire=true};$('dash').ontouchstart=e=>{e.preventDefault();keys.dash=true};
+let joyActive=false,jx=0,jy=0;function joyMove(e){let r=$('joy').getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,dx=e.clientX-cx,dy=e.clientY-cy,l=Math.min(45,Math.hypot(dx,dy));if(l){dx=dx/l;dy=dy/l}$('knob').style.transform='translate('+dx*l+'px,'+dy*l+'px)';keys.w=dy<-.25;keys.s=dy>.25;keys.a=dx<-.25;keys.d=dx>.25}
+$('joy').addEventListener('pointerdown',e=>{joyActive=true;$('joy').setPointerCapture(e.pointerId);joyMove(e)});$('joy').addEventListener('pointermove',e=>joyActive&&joyMove(e));$('joy').addEventListener('pointerup',()=>{joyActive=false;$('knob').style.transform='';keys.w=keys.s=keys.a=keys.d=false});
+function draw(){ctx.clearRect(0,0,W,H);ctx.fillStyle='#05060d';ctx.fillRect(0,0,W,H);ctx.strokeStyle='#101b39';ctx.lineWidth=1;for(let x=0;x<W;x+=50){ctx.beginPath();ctx.moveTo(x,60);ctx.lineTo(x,H);ctx.stroke()}for(let y=60;y<H;y+=50){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
+for(const q of pickups){ctx.beginPath();ctx.arc(q.x,q.y,9,0,7);ctx.fillStyle=q.type==='coin'?'#ffd45c':'#75ff7a';ctx.shadowBlur=18;ctx.shadowColor=ctx.fillStyle;ctx.fill();ctx.shadowBlur=0}
+for(const b of bullets){ctx.fillStyle=b.color;ctx.shadowBlur=12;ctx.shadowColor=b.color;ctx.beginPath();ctx.arc(b.x,b.y,4,0,7);ctx.fill();ctx.shadowBlur=0}
+for(const p of Object.values(players)){ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot);ctx.globalAlpha=p.dead?.25:1;ctx.fillStyle=p.color;ctx.shadowBlur=22;ctx.shadowColor=p.color;ctx.beginPath();ctx.moveTo(23,0);ctx.lineTo(-13,-12);ctx.lineTo(-8,0);ctx.lineTo(-13,12);ctx.closePath();ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(4,0,4,0,7);ctx.fill();ctx.restore();ctx.globalAlpha=1;ctx.fillStyle='#fff';ctx.font='11px system-ui';ctx.textAlign='center';ctx.fillText(p.name,p.x,p.y-28);ctx.fillStyle='#222';ctx.fillRect(p.x-22,p.y-22,44,4);ctx.fillStyle=p.color;ctx.fillRect(p.x-22,p.y-22,44*(p.hp/100),4)}}
+function loop(t){if(!running)return;let dt=Math.min(2,(t-last)/16.67);last=t;if(!host)sendInput(dt);else{sendInput(dt);tickHost(dt)}draw();updateUI();requestAnimationFrame(loop)}
+function updateUI(){let me=players[myId];if(me){score=me.score||0;coins=me.coins||0;$('score').textContent=score;$('coins').textContent=coins;$('level').textContent=Math.floor(score/500)+1}let arr=Object.values(players).sort((a,b)=>(b.score||0)-(a.score||0));$('players').innerHTML=arr.map((p,i)=>'<div class="pl"><span><i class="dot" style="background:'+p.color+'"></i>'+esc(p.name)+'</span><b>#'+(i+1)+' '+(p.kills||0)+'K</b></div>').join('')}
+$('send').onclick=sendChat;$('chatInput').onkeydown=e=>{if(e.key==='Enter')sendChat()};function sendChat(){let m=$('chatInput').value.trim();if(!m)return;$('chatInput').value='';let me=players[myId]||{};addMsg(me.name||'Você',m,me.color||'#fff');if(host)broadcast({t:'chat',n:me.name,m,c:me.color});else conn?.send({t:'chat',n:me.name,m,c:me.color})}
+$('hostBtn').onclick=setupHost;$('joinBtn').onclick=setupJoin;$('leave').onclick=leave;$('respawn').onclick=()=>{$('death').classList.remove('active');$('game').classList.add('active');dead=false;let me=players[myId];if(me){me.dead=false;me.hp=100;me.x=W/2;me.y=H/2}running=true};
+function leave(){running=false;try{peer?.destroy()}catch(e){}peer=conn=null;peers={};players={};$('game').classList.remove('active');$('death').classList.remove('active');$('menu').classList.add('active');toast('Você saiu da partida')}
+</script>
+</body></html>
